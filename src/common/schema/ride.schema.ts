@@ -43,9 +43,27 @@ export class Ride {
   distance : number ;
 
   @Prop({
+    type : Number 
+  })
+  otp ?: number ;
+
+  @Prop({
+    type : Number,
+    required : true
+  })
+  fare : number ;
+
+  @Prop({
+    type : String,
+    required : true,
+    enum : ['cash', 'online']
+  })
+  paymentMode : string ;
+
+  @Prop({
     required: true,
     type: String,
-    enum: ['processing', 'accepted', 'started', 'completed', 'cancelled', 'terminated'],
+    enum: ['processing', 'accepted', 'started', 'completed', 'cancelled', 'terminated','failed'],
     default: 'processing',
   })
   status: string;
@@ -67,6 +85,12 @@ export class Ride {
     type: string;
     coordinates: number[];
   };
+
+  @Prop({
+    type : String,
+    enum : ['user', 'driver'],
+  })
+  cancelledBy : string ;
 
 }
 

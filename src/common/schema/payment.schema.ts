@@ -26,13 +26,7 @@ export class Payment {
         type : String,
         required : true
     })
-    paymentId : string ;
-
-    @Prop({
-        type : String,
-        required : true
-    })
-    paymentIntendId : string ;
+    paymentIntentId : string ;
 
     @Prop({
         type : Number,

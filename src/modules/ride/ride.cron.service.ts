@@ -5,19 +5,23 @@ import { Ride, RideDocument } from '../../common/schema/ride.schema';
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { User, UserDocument } from 'src/common/schema/user.schema';
+import { Payment, PaymentDocument } from 'src/common/schema/payment.schema';
+import { PaymentService } from 'src/common/payment/payment.service';
 
 @Injectable()
 export class RideCronService {
   constructor(
     @InjectModel(Ride.name) private readonly rideModel: Model<RideDocument>,
     @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
+    @InjectModel(Payment.name) private readonly paymentModel: Model<PaymentDocument>,
+    private readonly paymentService: PaymentService,
     private readonly rideGateway: RideGateway,
   ) {}
 
   @Cron(CronExpression.EVERY_10_SECONDS)
   async retryUnacceptedRides() {
     
-    const threshold = new Date(Date.now() - 60 * 1000);
+    const threshold = new Date(Date.now() - 2 * 60 * 1000);
 
     const ridesToRetry = await this.rideModel.aggregate([
       {
@@ -62,7 +66,11 @@ export class RideCronService {
           $set: {
             status: 'terminated',
           },
-        });
+        })
+        const payment = await this.paymentModel.findOne({ride : ride._id});
+        if(payment){
+          await this.paymentService.handleRefund(payment?.paymentIntentId);
+        }
         this.rideGateway.sendRideTerminated(ride.bookedBy._id.toString(), {...ride,sentToRadius : null, status : 'terminated'});
       } else {
         const nearbyDrivers = await this.userModel.find({
@@ -78,6 +86,8 @@ export class RideCronService {
           },
         });
 
+        this.rideGateway.sendRadiusUpdate(ride.bookedBy._id.toString(), {...ride,sentToRadius : 7});
+
         for (const driver of nearbyDrivers) {
           this.rideGateway.sendRideRequest(driver._id.toString(), {...ride,sentToRadius : null});
         }
@@ -89,5 +99,6 @@ export class RideCronService {
         });
       }
     }
+
   }
 }

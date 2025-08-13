@@ -37,6 +37,7 @@
     "cloudinary": "^2.7.0",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
+    "moment-timezone": "^0.6.0",
     "mongoose": "^8.17.0",
     "mongoose-paginate-v2": "^1.9.1",
     "multer": "^2.0.2",

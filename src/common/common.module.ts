@@ -6,6 +6,7 @@ import { ActivityLog, ActivityLogSchema } from "./schema/activity_log.schema";
 import { Ride, RideSchema, TemporaryRide, TemporaryRideSchema } from "./schema/ride.schema";
 import { Otp, OtpSchema } from "./schema/otp.schema";
 import { Payment, PaymentSchema } from "./schema/payment.schema";
+import { DriverEarning, DriverEarningSchema } from "./schema/earning.schema";
 
 @Global()
 @Module({
@@ -46,6 +47,10 @@ import { Payment, PaymentSchema } from "./schema/payment.schema";
             {
                 name: Payment.name,
                 schema: PaymentSchema
+            },
+            {
+                name: DriverEarning.name,
+                schema: DriverEarningSchema
             }
         ])
     ],

@@ -4,13 +4,15 @@ import ApiResponse from 'src/common/helpers/api-response';
 import { InjectModel } from '@nestjs/mongoose';
 import { User, UserDocument, VehicleDetails, VehicleDetailsDocument } from 'src/common/schema/user.schema';
 import { Model } from 'mongoose';
+import { EarningService } from 'src/common/earning/earning.service';
 
 @Injectable()
 export class DriverService {
 
     constructor(
         @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
-        @InjectModel(VehicleDetails.name) private readonly vehicleDetailsModel: Model<VehicleDetailsDocument>
+        @InjectModel(VehicleDetails.name) private readonly vehicleDetailsModel: Model<VehicleDetailsDocument>,
+        private readonly earningService: EarningService
     ){}
 
       async setupDriverAccount(
@@ -86,6 +88,14 @@ export class DriverService {
           HttpStatus.CREATED,
           updatedDriverInfo,
         );
+      }
+
+      async getDriverEarnings(request : any) {
+
+        const driverId = request.user?._id ;
+
+        return await this.earningService.getWeeklyEarnings(driverId.toString());
+
       }
     
 

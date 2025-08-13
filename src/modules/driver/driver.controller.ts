@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
 import { DriverService } from './driver.service';
 import { Roles } from 'src/common/decorators/role.decorator';
 import { ApiBearerAuth } from '@nestjs/swagger';
@@ -21,4 +21,15 @@ export class DriverController {
   ) {
     return this.driverService.setupDriverAccount(request, setupDriverAccountDto);
   }
+
+  @Get("/earnings")
+  @Roles(Role.Driver)
+  @UseGuards(AuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  getEarnings(
+    @Req() request: any
+  ) {
+    return this.driverService.getDriverEarnings(request);
+  }
+
 }

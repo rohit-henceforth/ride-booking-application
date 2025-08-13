@@ -5,11 +5,13 @@ import { RideGateway } from './ride.gateway';
 import { JwtModule } from '@nestjs/jwt';
 import { RideCronService } from './ride.cron.service';
 import { PaymentModule } from 'src/common/payment/payment.module';
+import { EarningModule } from 'src/common/earning/earning.module';
 
 @Module({
   imports : [
     JwtModule,
-    forwardRef(() => PaymentModule)
+    forwardRef(() => PaymentModule),
+    EarningModule
   ],
   controllers: [RideController],
   providers: [RideService,RideGateway,RideCronService],

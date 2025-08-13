@@ -61,4 +61,64 @@ export class RideGateway {
 
   }
 
+  sendRideRequestFailed(userId : string, rideDetails : any){
+
+    const userSocketId = this.connectedUsers.get(userId); 
+
+    if(userSocketId){
+      this.server.to(userSocketId).emit('ride-failed',{message : "Sorry current no driver is available in your area. Your refund has been initiated!", rideDetails});
+    }
+
+  }
+
+  sendRideConfirmed(userId : string, rideDetails : any){
+
+    const userSocketId = this.connectedUsers.get(userId); 
+
+    if(userSocketId){
+      this.server.to(userSocketId).emit('ride-confirmed',{message : "Your ride has been confirmed. Looking for your driver...", rideDetails});
+    }
+
+  }
+
+  sendRadiusUpdate(userId : string, rideDetails : any){
+
+    const userSocketId = this.connectedUsers.get(userId);
+
+    if(userSocketId){
+      this.server.to(userSocketId).emit('search-update',{message : `Looking for riders within ${rideDetails.sentToRadius} kms`, rideDetails});
+    }
+
+  }
+
+  sendRideStarted(userId : string, rideDetails : any){
+
+    const userSocketId = this.connectedUsers.get(userId);
+
+    if(userSocketId){
+      this.server.to(userSocketId).emit('ride-started',{message : `Your ride has been started!`, rideDetails});
+    }
+
+  }
+
+  sendRideCancelled(userId : string, rideDetails : any){
+
+    const userSocketId = this.connectedUsers.get(userId);
+
+    if(userSocketId){
+      this.server.to(userSocketId).emit('ride-cancelled',rideDetails);
+    }
+
+  }
+
+  sendRideCompleted(userId : string, rideDetails : any){
+
+    const userSocketId = this.connectedUsers.get(userId);
+
+    if(userSocketId){
+      this.server.to(userSocketId).emit('ride-completed',{message : "Your ride has been completed!",rideDetails});
+    }
+
+  }
+
 }
