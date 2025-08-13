@@ -5,47 +5,52 @@ import { ErrorLog, ErrorLogSchema } from "./schema/error_module.schema";
 import { ActivityLog, ActivityLogSchema } from "./schema/activity_log.schema";
 import { Ride, RideSchema, TemporaryRide, TemporaryRideSchema } from "./schema/ride.schema";
 import { Otp, OtpSchema } from "./schema/otp.schema";
+import { Payment, PaymentSchema } from "./schema/payment.schema";
 
 @Global()
 @Module({
-    imports : [
+    imports: [
         MongooseModule.forFeature([
             {
-                name : User.name,
-                schema : UserSchema
+                name: User.name,
+                schema: UserSchema
             },
             {
-                name : PendingUser.name,
-                schema : PendingUserSchema
+                name: PendingUser.name,
+                schema: PendingUserSchema
             },
             {
-                name : VehicleDetails.name,
-                schema : vehicleDetailsSchema
+                name: VehicleDetails.name,
+                schema: vehicleDetailsSchema
             },
             {
-                name : ErrorLog.name,
-                schema : ErrorLogSchema
+                name: ErrorLog.name,
+                schema: ErrorLogSchema
             },
             {
-                name : ActivityLog.name,
-                schema : ActivityLogSchema
+                name: ActivityLog.name,
+                schema: ActivityLogSchema
             },
             {
-                name : Ride.name,
-                schema : RideSchema
+                name: Ride.name,
+                schema: RideSchema
             },
             {
-                name : Otp.name,
-                schema : OtpSchema
+                name: Otp.name,
+                schema: OtpSchema
             },
             {
-                name : TemporaryRide.name,
-                schema : TemporaryRideSchema
+                name: TemporaryRide.name,
+                schema: TemporaryRideSchema
             },
+            {
+                name: Payment.name,
+                schema: PaymentSchema
+            }
         ])
     ],
-    exports : [
+    exports: [
         MongooseModule
     ]
 })
-export class CommonModule{}
+export class CommonModule { }

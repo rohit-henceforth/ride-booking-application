@@ -16,7 +16,7 @@ export class RideController {
   @Roles(Role.User)
   @UseGuards(AuthGuard, RolesGuard)
   create(@Req() request: any, @Body() createRideDto: CreateRideDto) {
-    return this.rideService.createRide(request,createRideDto);
+    return this.rideService.initiateRide(request,createRideDto);
   }
 
   @ApiBearerAuth()

@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsNotEmpty } from "class-validator";
+import { IsEnum, IsNotEmpty } from "class-validator";
 
 export class CreateRideDto {
 
@@ -13,6 +13,7 @@ export class CreateRideDto {
 
   @ApiProperty({ example: "bike" })
   @IsNotEmpty()
-  readonly vehicleType: string;
+  @IsEnum(['bike','car'])
+  readonly vehicleType: "bike" | "car";
 
 }

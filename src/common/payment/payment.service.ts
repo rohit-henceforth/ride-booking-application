@@ -1,45 +1,58 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { forwardRef, HttpStatus, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import ApiResponse from 'src/common/helpers/api-response';
 import Stripe from 'stripe';
 import { CreateCustomerDto } from './dto/create-customer.dto';
-import Api from 'twilio/lib/rest/Api';
+import { Request } from 'express';
+import { RideService } from 'src/modules/ride/ride.service';
 
 @Injectable()
 export class PaymentService {
   private stripe: Stripe;
 
-  constructor(private configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    @Inject(forwardRef(() => RideService)) private rideService : RideService
+  ) {
     this.stripe = new Stripe(this.configService.get('STRIPE_SECRET_KEY')!);
   }
 
-  async createCheckoutSession(successUrl: string, cancelUrl: string) {
+  async createCheckoutSession(rideId : string, amount : number, madeFor : string) {
     const session = await this.stripe.checkout.sessions.create({
       line_items: [
         {
           price_data: {
-            currency: 'usd',
-            product_data: {
-              name: 'Camera',
-              description: 'DSLR camera',
+            currency: 'inr',
+            product_data : {
+              name : "Ride"
             },
-            unit_amount: 400000,
+            unit_amount: amount * 100,
           },
           quantity: 1,
         },
       ],
       submit_type: 'pay',
       mode: 'payment',
-      success_url: successUrl,
-      cancel_url: cancelUrl,
+      success_url: "http://localhost:3000/stripe/success",
+      cancel_url: "http://localhost:3000/stripe/cancel",
+      metadata : {
+        for : madeFor,
+        rideId : rideId
+      }
     });
-    await this.getAllSubscriptions();
-    return session.url;
+    return session;
   }
 
-  async handleWebhook(request: any, sign: any) {
+  async handleWebhook(request: Request) {
     try {
-      const event = await this.stripe.webhooks.constructEvent(
+
+      const sign = request.headers['stripe-signature'];
+
+      if(!sign){
+        throw new UnauthorizedException("Signature is missing");
+      }
+
+      const event = this.stripe.webhooks.constructEvent(
         request.body,
         sign,
         this.configService.get('STRIPE_WEBHOOK_ENDPOINT_SECRET')!,
@@ -47,7 +60,7 @@ export class PaymentService {
 
       switch (event.type) {
         case 'checkout.session.completed':
-          console.log('Payment done!', event.data.object);
+          this.handlePaymentSuccess(event.data.object as Stripe.Checkout.Session);
           break;
         case 'checkout.session.async_payment_failed':
           console.log('Payment failed!', event.data.object);
@@ -78,6 +91,20 @@ export class PaymentService {
     } catch (error) {
       console.log(error);
     }
+  }
+
+  async handlePaymentSuccess(session : Stripe.Checkout.Session){
+
+    if(session.metadata?.for !== "book-ride"){
+      return ;
+    }
+
+    if(!session.metadata?.rideId){
+      return ;
+    }
+
+    this.rideService.createRide(session.metadata?.rideId);
+
   }
 
   async handleRefund(paymentIntentId: string) {

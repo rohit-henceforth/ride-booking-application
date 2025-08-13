@@ -1,24 +1,29 @@
 import {
   BadGatewayException,
   BadRequestException,
+  forwardRef,
   HttpStatus,
+  Inject,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Ride, RideDocument } from '../../common/schema/ride.schema';
+import { Ride, RideDocument, TemporaryRide, TemporaryRideDocument } from '../../common/schema/ride.schema';
 import { Model, Types } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import ApiResponse from 'src/common/helpers/api-response';
 import { CreateRideDto } from './dto/create-ride.dto';
 import { RideGateway } from './ride.gateway';
 import { User, UserDocument } from 'src/common/schema/user.schema';
+import { PaymentService } from 'src/common/payment/payment.service';
 
 @Injectable()
 export class RideService {
   constructor(
     @InjectModel(Ride.name) private readonly rideModel: Model<RideDocument>,
     @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
+    @InjectModel(TemporaryRide.name) private readonly temporaryRideModel: Model<TemporaryRideDocument>,
     private readonly rideGateway: RideGateway,
+    @Inject(forwardRef(() => PaymentService)) private readonly paymentService: PaymentService
   ) {}
 
   private getDistanceKm(coord1: number[], coord2: number[]) {
@@ -125,61 +130,16 @@ export class RideService {
     }
   }
 
-  async createRide(
-    request: any,
-    createRideDto: CreateRideDto,
-  ): Promise<ApiResponse<any>> {
-    const {
-      dropoffLocationCoordinates,
-      pickupLocationCoordinates,
-      vehicleType,
-    } = createRideDto;
+  async createRide(rideId : string) {
 
-    if (!request.user?._id) {
-      throw new UnauthorizedException('User not found!');
-    }
-
-    if (
-      !dropoffLocationCoordinates ||
-      !Array.isArray(dropoffLocationCoordinates) ||
-      dropoffLocationCoordinates.length !== 2
-    ) {
-      throw new BadRequestException(
-        'Dropoff location coordinates are required!',
-      );
-    }
-
-    if (
-      !pickupLocationCoordinates ||
-      !Array.isArray(pickupLocationCoordinates) ||
-      pickupLocationCoordinates.length !== 2
-    ) {
-      throw new BadRequestException(
-        'Pickup location coordinates are required!',
-      );
-    }
-
-    if (!vehicleType) {
-      throw new BadRequestException('Vehicle type is required!');
-    }
-
-    const newRide = await this.rideModel.create({
-      pickupLocation: {
-        type: 'Point',
-        coordinates: pickupLocationCoordinates,
-      },
-      dropoffLocation: {
-        type: 'Point',
-        coordinates: dropoffLocationCoordinates,
-      },
-      bookedBy: request.user._id,
-      vehicleType,
-    });
+    const ride = this.temporaryRideModel.findById(
+      new Types.ObjectId(rideId)
+    );
 
     const newRideDetails = await this.rideModel.aggregate([
       {
         $match: {
-          _id: newRide._id,
+          _id: new Types.ObjectId(rideId),
         },
       },
       {
@@ -217,7 +177,7 @@ export class RideService {
       true,
       'Ride created successfully!',
       HttpStatus.OK,
-      newRideDetails[0],
+      // newRideDetails[0],
     );
   }
 
@@ -330,6 +290,74 @@ export class RideService {
       HttpStatus.OK,
       updatedRide[0],
     );
+  }
+
+  async initiateRide(request: any,createRideDto: CreateRideDto,) : Promise<ApiResponse<any>> {
+
+    const { dropoffLocationCoordinates, pickupLocationCoordinates, vehicleType} = createRideDto;
+
+    if (!request.user?._id) {
+      throw new UnauthorizedException('User not found!');
+    }
+
+    if (
+      !dropoffLocationCoordinates ||
+      !Array.isArray(dropoffLocationCoordinates) ||
+      dropoffLocationCoordinates.length !== 2
+    ) {
+      throw new BadRequestException(
+        'Dropoff location coordinates are required!',
+      );
+    }
+
+    if (
+      !pickupLocationCoordinates ||
+      !Array.isArray(pickupLocationCoordinates) ||
+      pickupLocationCoordinates.length !== 2
+    ) {
+      throw new BadRequestException(
+        'Pickup location coordinates are required!',
+      );
+    }
+
+    if (!vehicleType) {
+      throw new BadRequestException('Vehicle type is required!');
+    }
+
+    const newRide = new this.temporaryRideModel({
+      pickupLocation: {
+        type: 'Point',
+        coordinates: pickupLocationCoordinates,
+      },
+      dropoffLocation: {
+        type: 'Point',
+        coordinates: dropoffLocationCoordinates,
+      },
+      bookedBy: request.user._id,
+      vehicleType : vehicleType,
+    });
+
+    const distance = this.getDistanceKm(pickupLocationCoordinates,dropoffLocationCoordinates);
+
+    const fare = Number((20 + distance * 10).toFixed(2));
+
+    const paymentCheckoutSession = await this.paymentService.createCheckoutSession(String(newRide._id),fare,"book-ride");
+
+    newRide.fare = fare ;
+    newRide.distance = distance ;
+    newRide.paymentSessionId = paymentCheckoutSession.id ;
+
+    await newRide.save();
+
+    return new ApiResponse(
+      true,
+      "Payment session has been initiated.",
+      HttpStatus.CREATED,
+      {
+        paymentUrl : paymentCheckoutSession.url
+      }
+    )
+
   }
 
 }
