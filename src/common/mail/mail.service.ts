@@ -1,57 +1,71 @@
-import { Injectable } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
-import * as nodemailer from "nodemailer";
+import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import * as nodemailer from 'nodemailer';
+import * as path from 'path';
 
 @Injectable()
 export class MailService {
+  private transporter: nodemailer.Transporter;
 
-    private transporter: nodemailer.Transporter;
+  constructor(private configService: ConfigService) {
+    this.transporter = nodemailer.createTransport({
+      host: this.configService.get('MAIL_HOST'),
+      port: this.configService.get('MAIL_PORT'),
+      secure: false,
+      auth: {
+        user: this.configService.get('MAIL_USER'),
+        pass: this.configService.get('MAIL_PASS'),
+      },
+    });
+  }
 
-    constructor(private configService: ConfigService) {
+  async sendOtpEmail(to: string, otp: number) {
+    await this.transporter.sendMail({
+      from: this.configService.get('MAIL_USER'),
+      to,
+      subject: 'Your OTP Code',
+      text: `Your OTP to signUp on User APIs is : ${otp}`,
+      html: `<h3>Your OTP to signUp on User APIs is : <b>${otp}</b></h3>`,
+    });
+  }
 
-        this.transporter = nodemailer.createTransport({
-            host: this.configService.get('MAIL_HOST'),
-            port: this.configService.get('MAIL_PORT'),
-            secure: false,
-            auth: {
-                user: this.configService.get('MAIL_USER'),
-                pass: this.configService.get('MAIL_PASS'),
-            }
-        })
+  async sendLoginOtpEmail(to: string, otp: number) {
+    await this.transporter.sendMail({
+      from: this.configService.get('MAIL_USER'),
+      to,
+      subject: 'Your Login OTP Code',
+      text: `Your OTP to login on User APIs is : ${otp}`,
+      html: `<h3>Your OTP to login on User APIs is : <b>${otp}</b></h3>`,
+    });
+  }
 
-    }
+  async sendForgetPasswordOtpEmail(to: string, otp: number) {
+    await this.transporter.sendMail({
+      from: this.configService.get('MAIL_USER'),
+      to,
+      subject: 'Your Password Reset OTP Code',
+      text: `Your OTP to reset password of User APIs is : ${otp}`,
+      html: `<h3>Your OTP to reset of User APIs is : <b>${otp}</b></h3>`,
+    });
+  }
 
-    async sendOtpEmail(to: string, otp: number) {
-        await this.transporter.sendMail({
-            from: this.configService.get('MAIL_USER'),
-            to,
-            subject: 'Your OTP Code',
-            text: `Your OTP to signUp on User APIs is : ${otp}`,
-            html: `<h3>Your OTP to signUp on User APIs is : <b>${otp}</b></h3>`,
-        });
-
-    }
-
-    async sendLoginOtpEmail(to: string, otp: number) {
-        await this.transporter.sendMail({
-            from: this.configService.get('MAIL_USER'),
-            to,
-            subject: 'Your Login OTP Code',
-            text: `Your OTP to login on User APIs is : ${otp}`,
-            html: `<h3>Your OTP to login on User APIs is : <b>${otp}</b></h3>`,
-        });
-
-    }
-
-    async sendForgetPasswordOtpEmail(to: string, otp: number) {
-        await this.transporter.sendMail({
-            from: this.configService.get('MAIL_USER'),
-            to,
-            subject: 'Your Password Reset OTP Code',
-            text: `Your OTP to reset password of User APIs is : ${otp}`,
-            html: `<h3>Your OTP to reset of User APIs is : <b>${otp}</b></h3>`,
-        });
-
-    }
-
+  async sendInvoice(to: string) {
+    const invoicePath = path.join(
+      __dirname,
+      '../../uploads/invoices/invoice_INV123.pdf',
+    );
+    return await this.transporter.sendMail({
+      from: this.configService.get('MAIL_USER'),
+      to,
+      subject: 'Invoice | Ride Booking Application',
+      text: `Your Invoice is attached below`,
+      html: `<h3>Your Invoice is attached below</h3>`,
+      attachments: [
+        {
+          filename: 'invoice.pdf',
+          path: invoicePath,
+        },
+      ],
+    });
+  }
 }

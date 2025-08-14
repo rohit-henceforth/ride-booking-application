@@ -42,6 +42,7 @@
     "mongoose-paginate-v2": "^1.9.1",
     "multer": "^2.0.2",
     "nodemailer": "^7.0.5",
+    "pdfkit": "^0.17.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "socket.io": "^4.8.1",

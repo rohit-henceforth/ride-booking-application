@@ -32,7 +32,6 @@ export class EarningService {
       {
         $match: {
           driver: new Types.ObjectId(driverId),
-          status: 'pending',
         },
       },
       {
@@ -63,7 +62,16 @@ export class EarningService {
         $group: {
           _id: '$weekStart',
           weekEnd: { $first: '$weekEnd' },
-          totalEarnings: { $sum: '$amount' },
+          paidEarnings: {
+            $sum: {
+              $cond: [{ $eq: ['$status', 'paid'] }, '$amount', 0],
+            },
+          },
+          pendingEarnings: {
+            $sum: {
+              $cond: [{ $eq: ['$status', 'pending'] }, '$amount', 0],
+            },
+          },
           currency: { $first: '$currency' },
           rides: { $push: '$ride' },
         },
@@ -76,8 +84,29 @@ export class EarningService {
       weekEnd: moment(week.weekEnd).tz('Asia/Kolkata').format(),
       totalEarnings: week.totalEarnings,
       currency: week.currency || 'inr',
-      rides: week.rides?.length,
+      rides: week.rides,
+      paidEarnings: week.paidEarnings,
+      pendingEarnings: week.pendingEarnings
     }));
+
+  }
+
+  async getDriverDueEarnings(driverId: string) {
+    return await this.driverEarningModel.find({
+      driver: new Types.ObjectId(driverId),
+      status: 'pending',
+    });
+  }
+
+  async markAsPaid(earningId: string) {
+    await this.driverEarningModel.findByIdAndUpdate(
+      new Types.ObjectId(earningId),
+      {
+        $set: {
+          status: 'paid',
+        },
+      },
+    );
   }
 
 }

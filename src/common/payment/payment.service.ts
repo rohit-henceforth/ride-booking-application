@@ -129,7 +129,6 @@ export class PaymentService {
 
   async handlePaymentRefund(session: Stripe.Charge) {
     try {
-      
       const refundInfo = await this.stripe.charges.retrieve(session.id, {
         expand: ['refunds'],
       });
@@ -154,5 +153,53 @@ export class PaymentService {
     await this.stripe.refunds.create({
       payment_intent: paymentIntentId,
     });
+  }
+
+  async handleCreateConnectAccount(email: string) {
+    const account = await this.stripe.accounts.create({
+      type: 'express',
+      country: 'AU',
+      business_type: 'individual',
+      email,
+      capabilities: {
+        transfers: { requested: true },
+      },
+    });
+    return account.id;
+  }
+
+  async getOnboardingLink(accountId: string) {
+    const accountLink = await this.stripe.accountLinks.create({
+      account: accountId,
+      refresh_url: 'http://localhost:3000/stripe/cancel',
+      return_url: 'http://localhost:3000/stripe/success',
+      type: 'account_onboarding',
+    });
+    return accountLink.url;
+  }
+
+  async getStripeAccount(accountId: string) {
+    const account = await this.stripe.accounts.retrieve(accountId);
+    return account;
+  }
+
+  async handleCreateTransfer(amount: number, accountId: string) {
+    await this.stripe.transfers.create({
+      amount: amount * 100,
+      currency: 'aud',
+      destination: accountId,
+    });
+  }
+
+  async handleCreatePayout(amount: number, accountId: string) {
+    await this.stripe.payouts.create(
+      {
+        amount: Math.round(amount * 100),
+        currency: 'aud',
+      },
+      {
+        stripeAccount: accountId,
+      },
+    );
   }
 }

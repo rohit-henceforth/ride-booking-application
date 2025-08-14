@@ -98,6 +98,11 @@ export class User {
   })
   vehicleDetails?: Types.ObjectId;
 
+  @Prop({
+    type : String
+  })
+  stripeAccountId ?: string ;
+
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

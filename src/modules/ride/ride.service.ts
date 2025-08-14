@@ -24,17 +24,23 @@ import { StartRideDto } from './dto/start-ride.dto';
 import { Payment, PaymentDocument } from 'src/common/schema/payment.schema';
 import { CompleteRideDto } from './dto/complete-ride.dto';
 import { EarningService } from 'src/common/earning/earning.service';
+import { PdfService } from 'src/common/pdf/pdf.service';
+import { MailService } from 'src/common/mail/mail.service';
 
 @Injectable()
 export class RideService {
   constructor(
     @InjectModel(Ride.name) private readonly rideModel: Model<RideDocument>,
     @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
-    @InjectModel(TemporaryRide.name) private readonly temporaryRideModel: Model<TemporaryRideDocument>,
+    @InjectModel(TemporaryRide.name)
+    private readonly temporaryRideModel: Model<TemporaryRideDocument>,
     private readonly rideGateway: RideGateway,
     @Inject(forwardRef(() => PaymentService))
     private readonly paymentService: PaymentService,
+    @Inject(forwardRef(() => EarningService))
     private readonly earningService: EarningService,
+    private readonly pdfService: PdfService,
+    private readonly mailService: MailService,
   ) {}
 
   private getDistanceKm(coord1: number[], coord2: number[]) {
@@ -344,6 +350,28 @@ export class RideService {
         },
       ]);
 
+      const baseFare = newRide?.fare / (1 + 18 / 100)
+
+      await this.pdfService.createInvoice({
+        rideId: 'ABC123',
+        currency: 'INR',
+        invoiceDate: new Date(Date.now()),
+        clientName: newRideDetails[0]?.bookedBy?.name,
+        invoiceNumber: 'INV123',
+        clientPhone: newRideDetails[0]?.bookedBy?.contactNumber,
+        items: [
+          {
+            description: 'Ride Fare',
+            distance: newRide?.distance,
+            total: baseFare
+          },
+        ],
+        taxPercent: 18,
+        discount: 0
+      });
+
+      await this.mailService.sendInvoice(newRideDetails[0]?.bookedBy?.name);
+
       const sentToRadius = await this.sendRideRequestToDrivers(
         newRideDetails[0],
       );
@@ -494,20 +522,22 @@ export class RideService {
     );
 
     const fare = this.calculateFare(distance);
-    
-    const paymentCheckoutSession =
-    await this.paymentService.createCheckoutSession(
-      String(newRide._id),
-      fare,
-      'book-ride',
-    );
 
-    newRide.fare = fare;
+    const totalFare = fare + fare * 0.18;
+
+    const paymentCheckoutSession =
+      await this.paymentService.createCheckoutSession(
+        String(newRide._id),
+        fare,
+        'book-ride',
+      );
+
+    newRide.fare = totalFare;
     newRide.distance = distance;
     newRide.paymentSessionId = paymentCheckoutSession.id;
-    
+
     await newRide.save();
-    
+
     return new ApiResponse(
       true,
       'Payment session has been initiated.',
@@ -638,10 +668,9 @@ export class RideService {
   }
 
   async completeRide(completeRideDto: CompleteRideDto, request: any) {
-
     const { rideId, otp } = completeRideDto;
 
-    console.log(request.user?._id)
+    console.log(request.user?._id);
 
     const ride = await this.rideModel.findOneAndUpdate(
       {
@@ -669,7 +698,8 @@ export class RideService {
 
     console.log(rideDetails);
 
-    const driversShareAmount = await this.earningService.createDriverEarning(rideDetails);
+    const driversShareAmount =
+      await this.earningService.createDriverEarning(rideDetails);
 
     this.rideGateway.sendRideCompleted(rideDetails.bookedBy._id.toString(), {
       ...rideDetails,
@@ -680,8 +710,11 @@ export class RideService {
       true,
       'Ride has been completed successfully!',
       HttpStatus.OK,
-      { ...rideDetails, paymentDetails: undefined, earnedAmount : driversShareAmount },
+      {
+        ...rideDetails,
+        paymentDetails: undefined,
+        earnedAmount: driversShareAmount,
+      },
     );
-
   }
 }

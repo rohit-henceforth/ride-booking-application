@@ -7,10 +7,9 @@ import { PaymentController } from './payment.controller';
   imports: [
     forwardRef(() => RideModule)
   ],
-  controllers : [
-    PaymentController
-  ],
+  controllers: [PaymentController],
   providers: [PaymentService],
-  exports : [PaymentService]
+  exports: [PaymentService],
 })
 export class PaymentModule {}
+

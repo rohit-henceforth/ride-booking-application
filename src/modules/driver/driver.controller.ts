@@ -7,29 +7,37 @@ import { RolesGuard } from 'src/common/guards/role.guard';
 import { Role } from 'src/common/enums/role.enum';
 import { SetupDriverAccountDto } from './dto/setup-driver-account.dto copy';
 
+// @Roles(Role.Driver)
+// @UseGuards(AuthGuard, RolesGuard)
+// @ApiBearerAuth()
 @Controller('driver')
 export class DriverController {
   constructor(private readonly driverService: DriverService) {}
 
   @Post()
-  @Roles(Role.Driver)
-  @UseGuards(AuthGuard, RolesGuard)
-  @ApiBearerAuth()
   setupDriverAccount(
     @Req() request: any,
     @Body() setupDriverAccountDto: SetupDriverAccountDto,
   ) {
-    return this.driverService.setupDriverAccount(request, setupDriverAccountDto);
+    return this.driverService.setupDriverAccount(
+      request,
+      setupDriverAccountDto,
+    );
   }
 
-  @Get("/earnings")
-  @Roles(Role.Driver)
-  @UseGuards(AuthGuard, RolesGuard)
-  @ApiBearerAuth()
-  getEarnings(
-    @Req() request: any
-  ) {
+  @Get('/earnings')
+  getEarnings(@Req() request: any) {
     return this.driverService.getDriverEarnings(request);
+  }
+
+  @Get('/create-payout-account')
+  createPayoutAccount(@Req() request: any) {
+    return this.driverService.createPayoutAccount(request);
+  }
+
+  @Get('/create-account-link')
+  createPayoutAccountLink(@Req() request: any) {
+    return this.driverService.createPayoutAccountLink(request);
   }
 
 }

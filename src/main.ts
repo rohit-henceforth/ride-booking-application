@@ -8,6 +8,7 @@ import { AdminService } from './modules/admin/admin.service';
 import { ErrorModuleService } from './common/logs/error_module/error_module.service';
 import { AllExceptionsFilter } from './common/filters/error.filter';
 import {raw} from 'express' ;
+import { PaymentService } from './common/payment/payment.service';
 
 async function bootstrap() {
   

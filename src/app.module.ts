@@ -18,6 +18,7 @@ import { RideModule } from './modules/ride/ride.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { DriverModule } from './modules/driver/driver.module';
 import { CommonModule } from './common/common.module';
+import { PdfModule } from './common/pdf/pdf.module';
 
 @Module({
   imports: [
@@ -41,7 +42,8 @@ import { CommonModule } from './common/common.module';
     PaymentModule,
     RideModule,
     DriverModule,
-    CommonModule
+    CommonModule,
+    PdfModule
   ],
   controllers: [],
   providers: [TokenService, SmsService, CloudinaryService]
